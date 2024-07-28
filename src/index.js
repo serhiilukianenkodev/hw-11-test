@@ -26,11 +26,28 @@ const api = new ImagesApi();
 // };
 const observer = new IntersectionObserver(
   entries => {
+    console.log(entries);
     const isIntersecting = entries[0].isIntersecting;
     console.dir(isIntersecting);
     if (!isIntersecting) return;
     api.setNextPage();
-    api.getData().then(showImages).catch(console.log);
+    api
+      .getData()
+      .then(({ total, totalHits, hits }) => {
+        showImages({ total, totalHits, hits });
+        if (api.page * api.perPage >= totalHits) {
+          console.log('🚀 ~ showImages ~ totalHits:', totalHits);
+          console.log('🚀 ~ showImages ~ totalHits:', totalHits);
+          console.log('🚀 ~ showImages ~ page*perPage', api.page * api.perPage);
+
+          Notify.failure(
+            "We're sorry, but you've reached the end of search results."
+          );
+          observer.unobserve(galleryGuard);
+          return;
+        }
+      })
+      .catch(console.log);
   },
   { root: null, rootMargin: '500px', threshold: 1.0 }
 );
@@ -47,9 +64,6 @@ function onFormSubmit(evt) {
   api.setQuery(normilizedQuery);
   api.getData().then(showImages).catch(console.log);
   evt.target.reset();
-  setTimeout(() => {
-    observer.observe(galleryGuard);
-  }, 1000);
 }
 
 function showImages({ total, totalHits, hits }) {
@@ -59,10 +73,25 @@ function showImages({ total, totalHits, hits }) {
     );
     return;
   }
+
   Notify.success(`Hooray! We found ${totalHits} images.`);
 
   galleryEl.insertAdjacentHTML('beforeend', createGalleryMarkup(hits));
   lighgtBox.refresh();
+  // if (api.page * api.perPage >= totalHits) {
+  //   console.log('🚀 ~ showImages ~ totalHits:', totalHits);
+  //   console.log('🚀 ~ showImages ~ totalHits:', totalHits);
+  //   console.log('🚀 ~ showImages ~ page*perPage', api.page * api.perPage);
+
+  //   Notify.failure(
+  //     "We're sorry, but you've reached the end of search results."
+  //   );
+  //   return;
+  // }
+
+  setTimeout(() => {
+    observer.observe(galleryGuard);
+  }, 1000);
 }
 
 function createGalleryMarkup(list) {
